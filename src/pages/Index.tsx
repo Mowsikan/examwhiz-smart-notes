@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Header from "@/components/Header";
 import QuestionSearch from "@/components/QuestionSearch";
@@ -6,33 +5,24 @@ import AnswerDisplay from "@/components/AnswerDisplay";
 import { generateAnswer } from "@/services/answerService";
 import { Book, Search, Save } from "lucide-react";
 import ConfigPanel from "@/components/ConfigPanel";
-import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
-  const { toast } = useToast();
   const [question, setQuestion] = useState("");
   const [markType, setMarkType] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSearch = async (searchQuery: string, marks: string) => {
+  const handleSearch = (searchQuery: string, marks: string) => {
     setQuestion(searchQuery);
     setMarkType(marks);
     setLoading(true);
     
-    try {
-      const generatedAnswer = await generateAnswer(searchQuery, marks as "2" | "5" | "16");
+    // Simulate API call delay
+    setTimeout(() => {
+      const generatedAnswer = generateAnswer(searchQuery, marks as "2" | "5" | "16");
       setAnswer(generatedAnswer);
-    } catch (error) {
-      console.error("Error generating answer:", error);
-      toast({
-        title: "Error generating answer",
-        description: "Something went wrong. Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
       setLoading(false);
-    }
+    }, 1500);
   };
 
   return (
@@ -87,7 +77,7 @@ const Index = () => {
               <h2 className="text-2xl font-bold text-center mb-6 text-gray-800">
                 Ask Your Question
               </h2>
-              <QuestionSearch onSearch={handleSearch} isLoading={loading} />
+              <QuestionSearch onSearch={handleSearch} />
               
               {loading && (
                 <div className="flex justify-center items-center mt-8">
