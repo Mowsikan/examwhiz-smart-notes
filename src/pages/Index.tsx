@@ -1,10 +1,10 @@
-
 import { useState } from "react";
 import Header from "@/components/Header";
 import QuestionSearch from "@/components/QuestionSearch";
 import AnswerDisplay from "@/components/AnswerDisplay";
 import { generateAnswer } from "@/services/answerService";
 import { Book, Search, Save } from "lucide-react";
+import ConfigPanel from "@/components/ConfigPanel";
 
 const Index = () => {
   const [question, setQuestion] = useState("");
@@ -28,6 +28,7 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col bg-examwhiz-offwhite">
       <Header />
+      <ConfigPanel />
       
       <main className="flex-1">
         {/* Hero Section */}
