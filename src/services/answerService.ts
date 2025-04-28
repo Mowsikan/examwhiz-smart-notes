@@ -1,185 +1,9 @@
-import { getApiKey } from "@/utils/apiKeys";
+
+// This is a mock service that simulates generating answers
+// In a real application, this would call an API to get answers from AI
 
 type AnswerType = "2" | "5" | "16";
 
-// Helper function to get answers using HuggingFace API
-const getHuggingFaceAnswer = async (question: string, detail: string): Promise<string> => {
-  const apiKey = getApiKey("HUGGING_FACE");
-  
-  try {
-    const response = await fetch("https://api-inference.huggingface.co/models/google/flan-t5-xxl", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        inputs: `${detail === "detailed" ? "Give a comprehensive explanation of" : detail === "medium" ? "Explain with examples" : "Briefly define"}: ${question}`,
-        parameters: {
-          max_length: detail === "detailed" ? 1000 : detail === "medium" ? 300 : 100,
-          temperature: 0.7,
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HuggingFace API error: ${response.status}`);
-    }
-
-    const result = await response.json();
-    return result[0]?.generated_text || fallbackGenerateAnswer(question, detail);
-  } catch (error) {
-    console.error("Error calling HuggingFace API:", error);
-    // Fall back to Gemini API
-    return getGeminiAnswer(question, detail);
-  }
-};
-
-// Helper function to get answers using Gemini API
-const getGeminiAnswer = async (question: string, detail: string): Promise<string> => {
-  const apiKey = getApiKey("GEMINI");
-  
-  try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `${detail === "detailed" ? "Give a comprehensive explanation with headings, examples, and conclusion of" : 
-                   detail === "medium" ? "Explain with examples and formulas" : 
-                   "Briefly define"}: ${question}`
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: detail === "detailed" ? 1000 : detail === "medium" ? 300 : 100,
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`);
-    }
-
-    const result = await response.json();
-    const textContent = result.candidates?.[0]?.content?.parts?.[0]?.text;
-    
-    if (textContent) {
-      return formatAnswer(textContent, detail);
-    } else {
-      return fallbackGenerateAnswer(question, detail);
-    }
-  } catch (error) {
-    console.error("Error calling Gemini API:", error);
-    // Fall back to Google Books API for factual content
-    return getGoogleBooksContent(question, detail);
-  }
-};
-
-// Helper function to search Google Books for related content
-const getGoogleBooksContent = async (question: string, detail: string): Promise<string> => {
-  const apiKey = getApiKey("GOOGLE_BOOKS");
-  
-  try {
-    // Extract main keywords from the question
-    const keywords = question.replace(/define|explain|describe|what is|how does/gi, "").trim();
-    
-    const response = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(keywords)}&maxResults=3&key=${apiKey}`
-    );
-
-    if (!response.ok) {
-      throw new Error(`Google Books API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    if (data.items && data.items.length > 0) {
-      // Extract relevant snippets from book descriptions
-      let content = "";
-      
-      for (const item of data.items) {
-        if (item.volumeInfo?.description) {
-          content += item.volumeInfo.description + " ";
-          if (content.length > 500) break;
-        }
-      }
-      
-      if (content) {
-        return formatAnswer(content, detail);
-      }
-    }
-    
-    // If no good content is found, fall back to mock data
-    return fallbackGenerateAnswer(question, detail);
-  } catch (error) {
-    console.error("Error calling Google Books API:", error);
-    // Fall back to our predefined mock data
-    return fallbackGenerateAnswer(question, detail);
-  }
-};
-
-// Format raw text into HTML with appropriate styling based on detail level
-const formatAnswer = (text: string, detail: string): string => {
-  if (detail === "detailed") {
-    // Add HTML formatting for detailed answers
-    // Convert paragraphs to proper HTML
-    let formattedText = "<h2>" + text.split(".")[0] + "</h2>";
-    
-    // Add paragraphs
-    let paragraphs = text.split("\n\n");
-    paragraphs.shift(); // Remove first paragraph as it's now the title
-    
-    paragraphs.forEach(paragraph => {
-      // Convert headings
-      if (paragraph.trim().toUpperCase() === paragraph.trim()) {
-        formattedText += `<h3>${paragraph}</h3>`;
-      } else if (paragraph.includes(":") && paragraph.split(":")[0].length < 30) {
-        formattedText += `<h3>${paragraph.split(":")[0]}</h3><p>${paragraph.split(":").slice(1).join(":")}</p>`;
-      } else {
-        formattedText += `<p>${paragraph}</p>`;
-      }
-    });
-    
-    return formattedText;
-  } else if (detail === "medium") {
-    // Medium format with paragraphs and possibly a formula
-    let formattedText = "";
-    let paragraphs = text.split("\n");
-    
-    paragraphs.forEach((paragraph, index) => {
-      if (index === 0) {
-        formattedText += `<h2>${paragraph}</h2>`;
-      } else if (paragraph.includes("=") || paragraph.includes("+") || 
-                paragraph.includes("→") || paragraph.includes("→")) {
-        formattedText += `<div class="formula">${paragraph}</div>`;
-      } else {
-        formattedText += `<p>${paragraph}</p>`;
-      }
-    });
-    
-    return formattedText;
-  } else {
-    // Simple format for brief answers
-    return `<p>${text}</p>`;
-  }
-};
-
-// The original mock data functions will now serve as fallbacks
-const fallbackGenerateAnswer = (question: string, detailLevel: string): string => {
-  if (detailLevel === "detailed") {
-    return generateDetailedBreakdown(question);
-  } else if (detailLevel === "medium") {
-    return generateExplanationWithExample(question);
-  } else {
-    return generateBriefDefinition(question);
-  }
-};
-
-// Existing mock data functions - kept as fallbacks
 const generateBriefDefinition = (question: string): string => {
   if (question.toLowerCase().includes("newton's laws")) {
     return `
@@ -489,29 +313,16 @@ const generateDetailedBreakdown = (question: string): string => {
   }
 };
 
-export const generateAnswer = async (question: string, markType: AnswerType): Promise<string> => {
-  let detailLevel: string;
-  
+export const generateAnswer = (question: string, markType: AnswerType): string => {
+  // Add a delay to simulate API call
   switch (markType) {
     case "2":
-      detailLevel = "brief";
-      break;
+      return generateBriefDefinition(question);
     case "5":
-      detailLevel = "medium";
-      break;
+      return generateExplanationWithExample(question);
     case "16":
-      detailLevel = "detailed";
-      break;
+      return generateDetailedBreakdown(question);
     default:
-      detailLevel = "brief";
-  }
-  
-  try {
-    // First try HuggingFace
-    return await getHuggingFaceAnswer(question, detailLevel);
-  } catch (error) {
-    console.error("Error generating answer:", error);
-    // Fall back to mock data
-    return fallbackGenerateAnswer(question, detailLevel);
+      return generateBriefDefinition(question);
   }
 };
