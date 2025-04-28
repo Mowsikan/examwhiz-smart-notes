@@ -68,7 +68,7 @@
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
@@ -85,8 +85,14 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+  
+  /* Add smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
+/* Improved answer content styling */
 .answer-content h2 {
   @apply text-xl font-semibold mb-4 text-examwhiz-blue;
 }
@@ -96,11 +102,11 @@
 }
 
 .answer-content p {
-  @apply mb-4;
+  @apply mb-4 text-gray-700 leading-relaxed;
 }
 
 .answer-content ul, .answer-content ol {
-  @apply mb-4 ml-6;
+  @apply mb-4 ml-6 space-y-2 text-gray-700;
 }
 
 .answer-content ul {
@@ -112,7 +118,7 @@
 }
 
 .answer-content table {
-  @apply w-full border-collapse mb-4;
+  @apply w-full border-collapse mb-4 rounded overflow-hidden;
 }
 
 .answer-content table th {
@@ -124,9 +130,19 @@
 }
 
 .answer-content .formula {
-  @apply my-4 p-3 bg-examwhiz-lightgray rounded-md text-center italic;
+  @apply my-4 p-4 bg-examwhiz-lightgray rounded-md text-center italic font-medium;
 }
 
 .answer-content .conclusion {
   @apply mt-6 p-4 bg-examwhiz-offwhite border-l-4 border-examwhiz-blue rounded;
+}
+
+/* Add animations */
+@keyframes fade-in {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
 }
